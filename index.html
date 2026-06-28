@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FIFA World Cup 2026 · Live</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Inter:wght@300;400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:   #020408;
+      --deep:    #04070f;
+      --panel:   #070c18;
+      --card:    #0a0f1e;
+      --border:  #121930;
+      --border2: #1a2340;
+      --gold:    #c9a84c;
+      --gold-lt: #e8c96a;
+      --gold-dk: #7a5020;
+      --red:     #a82318;
+      --white:   #dce8ff;
+      --muted:   #3d4f6e;
+      --r:       6px;
+    }
+
+    html, body {
+      min-height: 100vh; background: var(--black);
+      color: var(--white); font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* ═══════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════ */
+    header {
+      position: relative;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px;
+      height: 60px;
+      background: var(--deep);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    header::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg,
+        transparent 0%, var(--red) 15%, var(--gold) 35%,
+        var(--gold-lt) 50%, var(--gold) 65%, #1e56c0 85%, transparent 100%);
+      background-size: 300% 100%;
+      animation: headerline 6s linear infinite;
+    }
+    @keyframes headerline { to { background-position: 300% 0; } }
+
+    .h-logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    /* Inline WC2026 emblem SVG */
+    .h-logo svg { height: 36px; width: auto; }
+
+    .h-brand {
+      display: flex; flex-direction: column; line-height: 1;
+    }
+    .h-brand-main {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px; letter-spacing: 4px; color: var(--gold);
+    }
+    .h-brand-sub {
+      font-size: 9px; letter-spacing: 2.5px; color: var(--muted);
+      text-transform: uppercase; margin-top: 1px;
+    }
+
+    .live-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(168,35,24,0.15);
+      border: 1px solid rgba(168,35,24,0.45);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      color: #e04535; text-transform: uppercase;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #e04535;
+      animation: blink 1.3s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.25; transform:scale(.7); }
+    }
+
+    /* ═══════════════════════════════════════
+       MATCH BAR — scoreboard above player
+    ═══════════════════════════════════════ */
+    .match-bar {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: stretch; justify-content: center;
+    }
+
+    .match-inner {
+      width: 100%; max-width: 960px;
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+    }
+
+    .team-block {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 24px;
+    }
+    .team-block.right {
+      flex-direction: row-reverse; justify-content: flex-start;
+    }
+
+    .team-flag { font-size: 34px; line-height: 1; }
+
+    .team-info { display: flex; flex-direction: column; }
+    .team-info.right { align-items: flex-end; }
+
+    .team-country {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px; letter-spacing: 3px;
+      color: var(--white); line-height: 1;
+    }
+
+    .team-code {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 600; letter-spacing: 3px;
+      color: var(--muted); text-transform: uppercase; margin-top: 2px;
+    }
+
+    .score-center {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center;
+      padding: 10px 28px;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      min-width: 130px;
+    }
+    .score-digits {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 42px; letter-spacing: 10px;
+      color: var(--white); line-height: 1;
+    }
+    .score-status {
+      font-size: 9px; font-weight: 700; letter-spacing: 2px;
+      color: #e04535; text-transform: uppercase; margin-top: 3px;
+    }
+
+    /* ═══════════════════════════════════════
+       VIDEO SECTION
+    ═══════════════════════════════════════ */
+    .player-wrap {
+      position: relative;
+      width: 100%; max-width: 960px;
+      margin: 0 auto;
+      padding: 0 0 28px;
+    }
+
+    /* full-width container */
+    .video-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      overflow: hidden;
+    }
+
+    video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block; z-index: 1;
+    }
+
+    /* ── IDLE / STARTING SOON SCREEN ─────── */
+    #idleVideo{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:0;
+}
+.idle-bg{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    background:rgba(0,0,0,.25); /* optional dark overlay */
+}
+
+.idle-content{
+    position:relative;
+    z-index:2;
+}.idle-content{
+    opacity:0;
+    transition:.3s;
+}.idle-screen:hover .idle-content{
+    opacity:1;
+}.idle-bg{
+    background:rgba(0,0,0,.15);
+    transition:.3s;
+}
+
+.idle-screen:hover .idle-bg{
+    background:rgba(0,0,0,.55);
+}
+    .idle-screen {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      overflow: hidden;
+      transition: opacity .5s;
+    }
+    .idle-screen.hidden { opacity: 0; pointer-events: none; }
+
+    /* animated dark stadium background */
+    
+
+    /* scan line effect */
+    .idle-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.12) 2px,
+        rgba(0,0,0,0.12) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ambient glow orbs */
+    .idle-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      animation: orb-float 8s ease-in-out infinite alternate;
+    }
+    .idle-orb-1 {
+      width: 300px; height: 300px;
+      background: rgba(201,168,76,0.07);
+      top: -60px; left: -60px;
+    }
+    .idle-orb-2 {
+      width: 250px; height: 250px;
+      background: rgba(30,86,192,0.06);
+      bottom: -40px; right: -40px;
+      animation-delay: -4s;
+    }
+    @keyframes orb-float {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(30px,20px) scale(1.15); }
+    }
+
+    .idle-content {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0; text-align: center;
+    }
+
+    /* WC Trophy SVG — drawn inline, always visible */
+    .trophy-svg {
+      width: 90px; height: auto;
+      margin-bottom: 22px;
+      filter: drop-shadow(0 0 28px rgba(201,168,76,0.55));
+      animation: trophy-glow 3s ease-in-out infinite alternate;
+    }
+    @keyframes trophy-glow {
+      from { filter: drop-shadow(0 0 16px rgba(201,168,76,0.4)); }
+      to   { filter: drop-shadow(0 0 40px rgba(201,168,76,0.8)); }
+    }
+
+    .idle-wc-logo {
+      width: 68px; height: auto;
+      margin-bottom: 24px;
+      opacity: 0.85;
+    }
+
+    .idle-heading {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(28px, 5vw, 48px);
+      letter-spacing: 8px;
+      color: var(--white);
+      line-height: 1;
+      text-shadow: 0 0 40px rgba(201,168,76,0.2);
+    }
+
+    .idle-sub {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(13px, 2vw, 17px);
+      font-weight: 300; letter-spacing: 5px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-top: 10px;
+      opacity: 0.85;
+    }
+
+    /* pulsing line separator */
+    .idle-sep {
+      width: 80px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 18px auto;
+      animation: sep-pulse 2s ease-in-out infinite;
+    }
+    @keyframes sep-pulse {
+      0%,100% { opacity: 0.4; width: 60px; }
+      50%      { opacity: 1;   width: 100px; }
+    }
+
+    .idle-notice {
+      font-size: 11px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* blinking dots */
+    .idle-dots span {
+      display: inline-block;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--gold-dk); margin: 0 3px;
+      animation: dot-bounce .9s ease-in-out infinite;
+    }
+    .idle-dots span:nth-child(2) { animation-delay: .2s; }
+    .idle-dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes dot-bounce {
+      0%,80%,100% { transform: scale(1); background: var(--gold-dk); }
+      40%          { transform: scale(1.6); background: var(--gold); }
+    }
+    .idle-dots { margin-top: 16px; }
+
+    /* corner ornaments on player */
+    .orn {
+      position: absolute; width: 20px; height: 20px;
+      border-color: var(--gold-dk); border-style: solid;
+      z-index: 3; pointer-events: none;
+    }
+    .orn.tl { top:10px; left:10px;  border-width:2px 0 0 2px; }
+    .orn.tr { top:10px; right:10px; border-width:2px 2px 0 0; }
+    .orn.bl { bottom:10px; left:10px;  border-width:0 0 2px 2px; }
+    .orn.br { bottom:10px; right:10px; border-width:0 2px 2px 0; }
+
+    /* status strip below player */
+    .status-strip {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 16px 0;
+      font-size: 11px;
+    }
+    .st-text { color: var(--muted); letter-spacing: 0.5px; }
+    .st-text.ok  { color: #27ae60; }
+    .st-text.err { color: #e04535; }
+    .st-right { color: var(--muted); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ═══════════════════════════════════════
+       PHOTO STRIP
+    ═══════════════════════════════════════ */
+    .photo-strip-wrap {
+      background: var(--deep);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 0;
+      overflow: hidden;
+    }
+
+    .photo-strip-label {
+      text-align: center;
+      font-size: 9px; letter-spacing: 3px; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 18px;
+    }
+
+    .photo-strip {
+      display: flex; gap: 12px;
+      padding: 0 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .photo-card {
+      position: relative;
+      width: 200px; flex-shrink: 0;
+      border-radius: var(--r);
+      overflow: hidden;
+      border: 1px solid var(--border2);
+      background: var(--card);
+    }
+
+    .photo-card img {
+      width: 100%; aspect-ratio: 3/2; object-fit: cover;
+      display: block; filter: brightness(0.8) saturate(0.85);
+      transition: filter .3s;
+    }
+    .photo-card:hover img { filter: brightness(0.95) saturate(1); }
+
+    .photo-caption {
+      padding: 7px 10px;
+      font-size: 10px; letter-spacing: 1px; color: var(--muted);
+      text-transform: uppercase; text-align: center;
+    }
+
+    /* ═══════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════ */
+    footer {
+      background: var(--deep);
+      border-top: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+      margin-top:auto;
+    }
+
+    .f-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 14px; letter-spacing: 4px; color: var(--gold-dk);
+    }
+
+    .f-copy { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+
+    .f-flags { font-size: 18px; letter-spacing: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════ -->
+<header>
+  <div class="h-logo">
+    <!-- Official 2026 FIFA World Cup emblem from Wikimedia CC BY-SA 4.0 -->
+    <img
+      src="https://upload.wikimedia.org/wikipedia/en/thumb/9/9e/2026_FIFA_World_Cup_emblem.svg/200px-2026_FIFA_World_Cup_emblem.svg.png"
+      alt="FIFA World Cup 2026"
+      style="height:40px;width:auto;filter:drop-shadow(0 0 8px rgba(201,168,76,0.3))"
+      onerror="this.style.display='none'"
+    />
+    <div class="h-brand">
+      <div class="h-brand-main">FIFA World Cup</div>
+      <div class="h-brand-sub">USA · Canada · Mexico · 2026</div>
+    </div>
+  </div>
+  <div class="live-pill"><span class="live-dot"></span>Live</div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     MATCH SCOREBOARD
+══════════════════════════════════════════ -->
+<div class="match-bar">
+  <div class="match-inner">
+    <!-- LEFT TEAM — edit TEAM_HOME in the script below -->
+    <div class="team-block" id="teamHomeBlock">
+      <div class="team-flag" id="teamHomeFlag">🇧🇷</div>
+      <div class="team-info">
+        <div class="team-country" id="teamHomeName">Brazil</div>
+        <div class="team-code" id="teamHomeCode">BRA</div>
+      </div>
+    </div>
+
+    <div class="score-center">
+      <div class="score-digits">– : –</div>
+      <div class="score-status">● Match Day</div>
+    </div>
+
+    <!-- RIGHT TEAM -->
+    <div class="team-block right" id="teamAwayBlock">
+      <div class="team-flag" id="teamAwayFlag">🇦🇷</div>
+      <div class="team-info right">
+        <div class="team-country" id="teamAwayName">Argentina</div>
+        <div class="team-code" id="teamAwayCode">ARG</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PLAYER
+══════════════════════════════════════════ -->
+<div style="background:var(--black);padding:0;max-width:960px;margin:0 auto;width:100%;">
+  <div class="player-wrap">
+    <div class="video-container" id="playerBox">
+
+      <!-- corner ornaments -->
+      <span class="orn tl"></span><span class="orn tr"></span>
+      <span class="orn bl"></span><span class="orn br"></span>
+
+      <!-- ── IDLE / STREAM STARTING SOON ── -->
+      <div class="idle-screen" id="idleScreen">
+
+        <!-- Background video -->
+        <video id="idleVideo" loop playsinline>
+            <source src="intro.mp4" type="video/mp4">
+        </video>
+
+        <div class="idle-bg">
+            <div class="idle-orb idle-orb-1"></div>
+            <div class="idle-orb idle-orb-2"></div>
+        </div>
+
+        <div class="idle-content">
+            <div class="idle-heading">STREAM STARTING SOON</div>
+            <div class="idle-sub">FIFA World Cup 2026</div>
+            <div class="idle-sep"></div>
+            <div class="idle-notice">Broadcast will begin shortly</div>
+            <div class="idle-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </div>
+
+      <video id="videoEl" controls playsinline></video>
+    </div>
+
+    <div class="status-strip">
+      <span class="st-text" id="statusText">Awaiting stream…</span>
+      <span class="st-right">HLS · FIFA WC 2026</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer>
+  <div class="f-brand">FIFA WORLD CUP 2026</div>
+  <div class="f-flags">🇺🇸 🇨🇦 🇲🇽 <button id="playBtn">Click to start stream</button></div>
+  <div class="f-copy">June 11 – July 19, 2026 &nbsp;·&nbsp; HLS Stream Player</div>
+</footer>
+
+<!-- ══════════════════════════════════════════
+     SCRIPT — EDIT CONFIG HERE
+══════════════════════════════════════════ -->
+<script>
+/* ╔══════════════════════════════════════════╗
+   ║   E D I T A B L E   C O N F I G         ║
+   ╠══════════════════════════════════════════╣ */
+
+const CONFIG = {
+  // ── STREAM ──────────────────────────────
+  streamUrl: "http://212.102.34.8:9080/AndFlixHD/video.m3u8",          // ← paste your .m3u8 URL here 
+
+  // ── HOME TEAM (left) ────────────────────
+  home: {
+    name:  "Brazil",      // ← full country name
+    code:  "BRA",         // ← 3-letter code
+    flag:  "🇧🇷",         // ← flag emoji
+  },
+
+  // ── AWAY TEAM (right) ───────────────────
+  away: {
+    name:  "Japan",
+    code:  "JPN",
+    flag:  "🇯🇵",
+  },
+};
+const video2 = document.getElementById("idleVideo");
+
+document.getElementById("playBtn").onclick = async () => {
+    video2.muted = false;
+    await video2.play();
+    document.getElementById("playBtn").style.display = "none";
+};
+/* ╚══════════════════════════════════════════╝ */
+
+// Apply team config
+document.getElementById('teamHomeName').textContent = CONFIG.home.name;
+document.getElementById('teamHomeCode').textContent = CONFIG.home.code;
+document.getElementById('teamHomeFlag').textContent = CONFIG.home.flag;
+document.getElementById('teamAwayName').textContent = CONFIG.away.name;
+document.getElementById('teamAwayCode').textContent = CONFIG.away.code;
+document.getElementById('teamAwayFlag').textContent = CONFIG.away.flag;
+
+// Stream logic
+const video   = document.getElementById('videoEl');
+const idle    = document.getElementById('idleScreen');
+const status  = document.getElementById('statusText');
+
+function setStatus(msg, cls) {
+  status.textContent = msg;
+  status.className = 'st-text' + (cls ? ' ' + cls : '');
+}
+
+function startStream(url) {
+  if (!url) { setStatus('Wait patiently.', ''); return; }
+
+  if (Hls.isSupported()) {
+    video2.hidden = true;
+    const hls = new Hls({ enableWorker: true });
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      idle.classList.add('hidden');
+      video.play().catch(() => {});
+      setStatus('Stream live, enjoy the match!', 'ok');
+    });
+    hls.on(Hls.Events.ERROR, (_, d) => {
+      if (d.fatal) { setStatus('Stream error: ' + (d.details || 'unknown'), 'err'); }
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.addEventListener('loadedmetadata', () => {
+      idle.classList.add('hidden');
+      video.play().catch(() => {});
+      setStatus('Stream live, enjoy the match!', 'ok');
+    }, { once: true });
+    video.addEventListener('error', () => {
+      setStatus('Stream failed to load.', 'err');
+    }, { once: true });
+  } else {
+    setStatus('HLS not supported in this browser.', 'err');
+  }
+}
+
+startStream(CONFIG.streamUrl);
+</script>
+</body>
+</html>

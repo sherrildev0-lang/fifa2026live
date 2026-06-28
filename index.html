@@ -540,7 +540,7 @@
 
 const CONFIG = {
   // ── STREAM ──────────────────────────────
-  streamUrl: "https://lbgo.bozztv.com/ssh101/ssh101/qallamsortadf/playlist.m3u8",          // ← paste your .m3u8 URL here 
+  streamUrl: "",          // ← paste your .m3u8 URL here 
 
   // ── HOME TEAM (left) ────────────────────
   home: {
@@ -584,10 +584,12 @@ function setStatus(msg, cls) {
 }
 
 function startStream(url) {
-  if (!url) { setStatus('Wait patiently.', ''); return; }
+  if (!url) { setStatus('Wait patiently.', ''); video2.hidden = false;
+    document.getElementById("playBtn").hidden = false; return; }
 
   if (Hls.isSupported()) {
     video2.hidden = true;
+    document.getElementById("playBtn").hidden = true;
     const hls = new Hls({ enableWorker: true });
     hls.loadSource(url);
     hls.attachMedia(video);
